@@ -378,9 +378,6 @@ def trainHMM_fromDir(dirPath, hmmModelName, mtWin, mtStep):
             continue
         [segStart, segEnd, segLabels] = readSegmentGT(gtFile)                   # read GT data
         flags, classNames = segs2flags(segStart, segEnd, segLabels, mtStep)     # convert to flags
-        for c in classNames:                                                    # update classnames:
-            if c not in classesAll:
-                classesAll.append(c)
         [Fs, x] = audioBasicIO.readAudioFile(wavFile)                           # read audio data
         [F, _] = aF.mtFeatureExtraction(x, Fs, mtWin * Fs, mtStep * Fs, round(Fs * 0.050), round(Fs * 0.050))     # feature extraction
 
@@ -389,6 +386,10 @@ def trainHMM_fromDir(dirPath, hmmModelName, mtWin, mtStep):
         MIN = min(lenF, lenL)
         F = F[:, 0:MIN]
         flags = flags[0:MIN]
+
+        for c in classNames:                                                    # update classnames:
+            if c not in classesAll and classNames.index(c) in flags:
+                classesAll.append(c)
 
         flagsNew = []
         for j, fl in enumerate(flags):      # append features and labels
@@ -452,7 +453,8 @@ def hmmSegmentation(wavFileName, hmmModelName, PLOT=False, gtFileName=""):
                 flagsGTNew.append(classesAll.index(classNamesGT[flagsGT[j]]))
             else:
                 flagsGTNew.append(-1)
-        CM = numpy.zeros((len(classNamesGT), len(classNamesGT)))
+        #CM = numpy.zeros((len(classNamesGT), len(classNamesGT)))
+        CM = numpy.zeros((len(classesAll), len(classesAll)))
         flagsIndGT = numpy.array(flagsGTNew)
         for i in range(min(flagsInd.shape[0], flagsIndGT.shape[0])):
             CM[int(flagsIndGT[i]),int(flagsInd[i])] += 1                
@@ -461,7 +463,8 @@ def hmmSegmentation(wavFileName, hmmModelName, PLOT=False, gtFileName=""):
     acc = plotSegmentationResults(flagsInd, flagsIndGT, classesAll, mtStep, not PLOT)
     if acc >= 0:
         print "Overall Accuracy: {0:.2f}".format(acc)
-        return (flagsInd, classNamesGT, acc, CM)
+        #return (flagsInd, classNamesGT, acc, CM)
+        return (flagsInd, classesAll, acc, CM)
     else:
         return (flagsInd, classesAll, -1, -1)
 
@@ -578,6 +581,9 @@ def evaluateSegmentationClassificationDir(dirName, modelName, methodName):
     CM = CM / numpy.sum(CM)
     [Rec, Pre, F1] = computePreRec(CM, classNames)
 
+    print "Recall: {0}".format(Rec)
+    print "Precision: {0}".format(Pre)
+    print "F1: {0}".format(F1)
     print " - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - "
     print "Average Accuracy: {0:.1f}".format(100.0*numpy.array(accuracys).mean())
     print "Average Recall: {0:.1f}".format(100.0*numpy.array(Rec).mean())
