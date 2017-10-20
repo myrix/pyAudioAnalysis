@@ -14,7 +14,6 @@ from scipy.signal import fftconvolve
 from matplotlib.mlab import find
 import matplotlib.pyplot as plt
 from scipy import linalg as la
-from . import audioTrainTest as aT
 from . import audioBasicIO
 from . import utilities
 from scipy.signal import lfilter, hamming
